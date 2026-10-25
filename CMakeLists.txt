@@ -37,6 +37,7 @@ add_executable(factory_tests
     tests/test_entities.cpp
     tests/test_layout.cpp
     tests/test_sim.cpp
+    tests/test_belts.cpp
 )
 target_link_libraries(factory_tests PRIVATE factory_core Catch2::Catch2WithMain)
 include(Catch)
