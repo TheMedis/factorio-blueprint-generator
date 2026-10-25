@@ -31,4 +31,34 @@ Layout crossover(const Layout& a, const Layout& b, const Config& cfg, Rng& rng);
 // Repeatedly removes any entity whose removal does not lower fitness.
 Layout prune(const Layout& layout, const Config& cfg);
 
+struct GaParams {
+    int population = 200;
+    int generations = 500;
+    std::uint64_t seed = 42;
+    int threads = 0;  // 0 = std::thread::hardware_concurrency()
+};
+
+struct GenerationReport {
+    int generation;
+    double best_fitness;
+    double best_gears_per_s;
+    double mean_fitness;
+    bool improved;
+    const Layout* best;
+};
+
+struct GaResult {
+    Layout best;
+    SimResult best_result;
+    double best_fitness;
+    std::vector<double> best_history;  // best fitness after each generation, starting with generation 0
+};
+
+// Simulates every layout using `threads` workers; results[i] and the returned fitness[i] match pop[i].
+std::vector<double> evaluate_all(const std::vector<Layout>& pop, const Config& cfg, int threads,
+                                 std::vector<SimResult>& results);
+
+GaResult run_ga(const Config& cfg, const GaParams& params,
+                const std::function<void(const GenerationReport&)>& on_generation = {});
+
 }  // namespace factory

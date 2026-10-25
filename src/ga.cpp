@@ -1,5 +1,11 @@
 #include "ga.hpp"
 
+#include <algorithm>
+#include <atomic>
+#include <cmath>
+#include <numeric>
+#include <thread>
+
 namespace factory {
 namespace {
 
@@ -209,6 +215,110 @@ Layout prune(const Layout& layout, const Config& cfg) {
         }
     }
     return best;
+}
+
+std::vector<double> evaluate_all(const std::vector<Layout>& pop, const Config& cfg, int threads,
+                                 std::vector<SimResult>& results) {
+    results.assign(pop.size(), SimResult{});
+    std::vector<double> fit(pop.size(), 0.0);
+    int n = threads > 0 ? threads : int(std::max(1u, std::thread::hardware_concurrency()));
+    n = std::max(1, std::min(n, int(pop.size())));
+    std::atomic<std::size_t> next{0};
+    auto worker = [&] {
+        for (std::size_t i; (i = next.fetch_add(1)) < pop.size();) fit[i] = evaluate(pop[i], cfg, &results[i]);
+    };
+    std::vector<std::thread> pool;
+    for (int t = 1; t < n; ++t) pool.emplace_back(worker);
+    worker();
+    for (std::thread& t : pool) t.join();
+    return fit;
+}
+
+GaResult run_ga(const Config& cfg, const GaParams& params,
+                const std::function<void(const GenerationReport&)>& on_generation) {
+    Rng rng(params.seed);
+    const int P = params.population;
+    const std::vector<Layout> seeds = seed_layouts(cfg);
+    const int seeded = seeds.empty() ? 0 : int(std::lround(cfg.seed_fraction * P));
+    // The first `seeded` of each fresh batch are hand-made seeds; the rest are random.
+    auto fresh = [&](int i) { return i < seeded ? seeds[i % seeds.size()] : random_layout(cfg, rng); };
+
+    std::vector<Layout> pop;
+    for (int i = 0; i < P; ++i) pop.push_back(fresh(i));
+    std::vector<SimResult> results;
+    std::vector<double> fit = evaluate_all(pop, cfg, params.threads, results);
+
+    auto best_index = [&] { return int(std::max_element(fit.begin(), fit.end()) - fit.begin()); };
+    auto ranked = [&] {
+        std::vector<int> order(P);
+        std::iota(order.begin(), order.end(), 0);
+        std::stable_sort(order.begin(), order.end(), [&](int a, int b) { return fit[a] > fit[b]; });
+        return order;
+    };
+
+    int bi = best_index();
+    GaResult out{pop[bi], results[bi], fit[bi], {}};
+    auto report = [&](int gen, bool improved) {
+        out.best_history.push_back(out.best_fitness);
+        if (!on_generation) return;
+        const double mean = std::accumulate(fit.begin(), fit.end(), 0.0) / P;
+        on_generation({gen, out.best_fitness, out.best_result.gears_delivered, mean, improved, &out.best});
+    };
+    report(0, true);
+
+    int stagnant = 0;
+    for (int gen = 1; gen <= params.generations; ++gen) {
+        const std::vector<int> order = ranked();
+        auto tournament = [&]() -> const Layout& {
+            int best = uniform_int(rng, 0, P - 1);
+            for (int k = 1; k < cfg.tournament_size; ++k) {
+                const int c = uniform_int(rng, 0, P - 1);
+                if (fit[c] > fit[best]) best = c;
+            }
+            return pop[best];
+        };
+
+        std::vector<Layout> next;
+        for (int e = 0; e < cfg.elites && e < P; ++e) next.push_back(pop[order[e]]);
+        while (int(next.size()) < P) {
+            const Layout& a = tournament();
+            const bool cross = std::uniform_real_distribution<double>(0.0, 1.0)(rng) < cfg.crossover_rate;
+            Layout child = cross ? crossover(a, tournament(), cfg, rng) : a;
+            mutate(child, cfg, rng);
+            next.push_back(std::move(child));
+        }
+        pop = std::move(next);
+        fit = evaluate_all(pop, cfg, params.threads, results);
+
+        bi = best_index();
+        const bool improved = fit[bi] > out.best_fitness;
+        if (improved) {
+            out.best = pop[bi];
+            out.best_result = results[bi];
+            out.best_fitness = fit[bi];
+            stagnant = 0;
+        } else if (++stagnant >= cfg.stagnation_generations) {
+            // Replace the worst fraction with fresh seeds and random genomes to restore diversity.
+            const std::vector<int> worst_last = ranked();
+            const int replace = int(cfg.stagnation_replace_fraction * P);
+            std::vector<Layout> batch;
+            for (int i = 0; i < replace; ++i) batch.push_back(fresh(i));
+            std::vector<SimResult> batch_results;
+            const std::vector<double> batch_fit = evaluate_all(batch, cfg, params.threads, batch_results);
+            for (int i = 0; i < replace; ++i) {
+                const int dst = worst_last[P - 1 - i];
+                pop[dst] = std::move(batch[i]);
+                fit[dst] = batch_fit[i];
+                results[dst] = batch_results[i];
+            }
+            stagnant = 0;
+        }
+        report(gen, improved);
+    }
+
+    out.best = prune(out.best, cfg);
+    out.best_fitness = evaluate(out.best, cfg, &out.best_result);
+    return out;
 }
 
 }  // namespace factory

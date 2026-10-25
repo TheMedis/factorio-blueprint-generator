@@ -42,6 +42,7 @@ add_executable(factory_tests
     tests/test_belts.cpp
     tests/test_render.cpp
     tests/test_ga_ops.cpp
+    tests/test_ga_run.cpp
 )
 target_link_libraries(factory_tests PRIVATE factory_core Catch2::Catch2WithMain)
 include(Catch)
