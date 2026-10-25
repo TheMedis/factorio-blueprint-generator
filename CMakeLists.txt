@@ -29,6 +29,7 @@ add_library(factory_core
     src/layout.cpp
     src/sim.cpp
     src/render.cpp
+    src/ga.cpp
 )
 target_include_directories(factory_core PUBLIC src)
 target_link_libraries(factory_core PUBLIC factory_flags nlohmann_json::nlohmann_json Threads::Threads)
@@ -40,6 +41,7 @@ add_executable(factory_tests
     tests/test_sim.cpp
     tests/test_belts.cpp
     tests/test_render.cpp
+    tests/test_ga_ops.cpp
 )
 target_link_libraries(factory_tests PRIVATE factory_core Catch2::Catch2WithMain)
 include(Catch)
