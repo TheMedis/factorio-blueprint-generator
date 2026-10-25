@@ -1,0 +1,4 @@
+build/
+build-release/
+/best.json
+/best.svg
