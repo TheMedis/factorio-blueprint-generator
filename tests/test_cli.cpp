@@ -52,6 +52,13 @@ TEST_CASE("parse sim", "[cli]") {
     CHECK(s->layout_path == "layout.json");
 }
 
+TEST_CASE("parse blueprint", "[cli]") {
+    CliCommand cmd = parse_cli({"blueprint", "best.json"});
+    const auto* b = std::get_if<BlueprintOptions>(&cmd);
+    REQUIRE(b != nullptr);
+    CHECK(b->layout_path == "best.json");
+}
+
 TEST_CASE("parse errors", "[cli]") {
     CHECK_THAT(error_of({}), ContainsSubstring("missing command"));
     CHECK_THAT(error_of({"fly"}), ContainsSubstring("unknown command"));
@@ -65,4 +72,6 @@ TEST_CASE("parse errors", "[cli]") {
     CHECK_THAT(error_of({"run", "--bogus", "1"}), ContainsSubstring("unknown option"));
     CHECK_THAT(error_of({"sim"}), ContainsSubstring("layout file"));
     CHECK_THAT(error_of({"sim", "a.json", "b.json"}), ContainsSubstring("exactly one"));
+    CHECK_THAT(error_of({"blueprint"}), ContainsSubstring("layout file"));
+    CHECK_THAT(error_of({"blueprint", "a.json", "b.json"}), ContainsSubstring("exactly one"));
 }

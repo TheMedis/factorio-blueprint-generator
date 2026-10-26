@@ -49,10 +49,11 @@ CliCommand parse_run(const std::vector<std::string>& args) {
 CliCommand parse_cli(const std::vector<std::string>& args) {
     if (args.empty()) return CliError{"missing command"};
     if (args[0] == "run") return parse_run(args);
-    if (args[0] == "sim") {
-        if (args.size() < 2) return CliError{"sim needs a layout file"};
-        if (args.size() > 2) return CliError{"sim takes exactly one layout file"};
-        return SimOptions{args[1]};
+    if (args[0] == "sim" || args[0] == "blueprint") {
+        if (args.size() < 2) return CliError{args[0] + " needs a layout file"};
+        if (args.size() > 2) return CliError{args[0] + " takes exactly one layout file"};
+        if (args[0] == "sim") return SimOptions{args[1]};
+        return BlueprintOptions{args[1]};
     }
     return CliError{"unknown command '" + args[0] + "'"};
 }
@@ -60,7 +61,8 @@ CliCommand parse_cli(const std::vector<std::string>& args) {
 std::string usage() {
     return "usage:\n"
            "  factory run [--pop 200] [--gens 500] [--seed 42] [--threads N] [--out best] [--seeds]\n"
-           "  factory sim <layout.json>\n";
+           "  factory sim <layout.json>\n"
+           "  factory blueprint <layout.json>   (prints a Factorio 2.0 blueprint string)\n";
 }
 
 }  // namespace factory

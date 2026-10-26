@@ -1,3 +1,4 @@
+#include "blueprint.hpp"
 #include "cli.hpp"
 #include "render.hpp"
 
@@ -5,6 +6,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <optional>
 
 using namespace factory;
 
@@ -34,30 +36,45 @@ int run_command(const RunOptions& o, const Config& cfg) {
     print_result(r.best_result);
     std::printf("fitness %.3f, %.1f s\n", r.best_fitness, secs);
 
-    const std::string json_path = o.out + ".json", svg_path = o.out + ".svg";
-    if (!write_file(json_path, layout_to_json(r.best).dump(2)) || !write_file(svg_path, render_svg(r.best))) {
-        std::cerr << "error: cannot write " << json_path << " / " << svg_path << "\n";
+    const std::string json_path = o.out + ".json", svg_path = o.out + ".svg", bp_path = o.out + ".blueprint.txt";
+    if (!write_file(json_path, layout_to_json(r.best).dump(2)) || !write_file(svg_path, render_svg(r.best)) ||
+        !write_file(bp_path, blueprint_string(r.best) + "\n")) {
+        std::cerr << "error: cannot write " << json_path << " / " << svg_path << " / " << bp_path << "\n";
         return 1;
     }
-    std::cout << "wrote " << json_path << " and " << svg_path << "\n";
+    std::cout << "wrote " << json_path << ", " << svg_path << " and " << bp_path << "\n";
     return 0;
 }
 
-int sim_command(const SimOptions& o, const Config& cfg) {
-    std::ifstream f(o.layout_path);
+// Loads and validates a layout file; prints an error and returns nullopt on failure.
+std::optional<Layout> load_layout(const std::string& path, const Config& cfg) {
+    std::ifstream f(path);
     if (!f) {
-        std::cerr << "error: cannot open " << o.layout_path << "\n";
-        return 1;
+        std::cerr << "error: cannot open " << path << "\n";
+        return std::nullopt;
     }
     try {
-        const Layout l = layout_from_json(nlohmann::json::parse(f), cfg.max_entities);
-        std::cout << render_ascii(l) << ascii_legend();
-        print_result(simulate(l, cfg));
-        return 0;
+        return layout_from_json(nlohmann::json::parse(f), cfg.max_entities);
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << "\n";
-        return 1;
+        return std::nullopt;
     }
+}
+
+int sim_command(const SimOptions& o, const Config& cfg) {
+    const std::optional<Layout> l = load_layout(o.layout_path, cfg);
+    if (!l) return 1;
+    std::cout << render_ascii(*l) << ascii_legend();
+    print_result(simulate(*l, cfg));
+    return 0;
+}
+
+int blueprint_command(const BlueprintOptions& o, const Config& cfg) {
+    const std::optional<Layout> l = load_layout(o.layout_path, cfg);
+    if (!l) return 1;
+    if (l->size() > 16) std::cerr << "warning: grid larger than 16x16; the two substations will not power all of it\n";
+    std::cout << blueprint_string(*l) << "\n";
+    return 0;
 }
 
 }  // namespace
@@ -73,5 +90,6 @@ int main(int argc, char** argv) {
         if (run->use_seeds) cfg.seed_fraction = 0.1;
         return run_command(*run, cfg);
     }
+    if (const auto* bp = std::get_if<BlueprintOptions>(&cmd)) return blueprint_command(*bp, cfg);
     return sim_command(std::get<SimOptions>(cmd), cfg);
 }

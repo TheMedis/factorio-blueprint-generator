@@ -16,10 +16,21 @@ Tests (Debug, with sanitizers):
 
     ./build-release/factory run [--pop 200] [--gens 500] [--seed 42] [--threads N] [--out best] [--seeds]
     ./build-release/factory sim best.json
+    ./build-release/factory blueprint best.json
 
 `run` prints progress and the best layout, then writes `<out>.json` (Factorio-style entity
 list) and `<out>.svg`. By default the GA starts from random layouts only; `--seeds`
 also starts ~10% of the population from a hand-made working layout. `sim` re-simulates a saved or hand-written layout.
+
+## Try it in Factorio (2.0)
+
+`run` also writes `<out>.blueprint.txt`; `factory blueprint <layout.json>` prints the same
+string for any saved layout. In a sandbox or editor world (`/editor`), open the blueprint
+library → *Import string*, paste, and place it. The blueprint is self-contained for testing:
+the input chest is an infinity chest stocked with iron plates, the output is a wooden chest,
+assemblers come with the gear recipe, and two substations with electric energy interfaces
+just outside the 10×10 power everything. Expect slightly under the simulated rate: the
+simulator treats inserters picking from belts as fast as from chests.
 
 ASCII legend: `I` input chest, `O` output chest, `A` assembler, `^ > v <` belts,
 `n e s w` inserters (letter = drop direction).

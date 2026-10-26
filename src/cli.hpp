@@ -18,11 +18,15 @@ struct SimOptions {
     std::string layout_path;
 };
 
+struct BlueprintOptions {
+    std::string layout_path;
+};
+
 struct CliError {
     std::string message;
 };
 
-using CliCommand = std::variant<RunOptions, SimOptions, CliError>;
+using CliCommand = std::variant<RunOptions, SimOptions, BlueprintOptions, CliError>;
 
 // `args` excludes the program name.
 CliCommand parse_cli(const std::vector<std::string>& args);

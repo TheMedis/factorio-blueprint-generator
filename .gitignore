@@ -2,3 +2,5 @@ build/
 build-release/
 /best.json
 /best.svg
+/best.blueprint.txt
+/best_big.*

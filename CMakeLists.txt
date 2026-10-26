@@ -15,6 +15,7 @@ FetchContent_Declare(json
 FetchContent_MakeAvailable(Catch2 json)
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)  # for include(Catch)
 find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
 
 # Warnings (and sanitizers in Debug) for our own targets only.
 add_library(factory_flags INTERFACE)
@@ -31,9 +32,10 @@ add_library(factory_core
     src/render.cpp
     src/ga.cpp
     src/cli.cpp
+    src/blueprint.cpp
 )
 target_include_directories(factory_core PUBLIC src)
-target_link_libraries(factory_core PUBLIC factory_flags nlohmann_json::nlohmann_json Threads::Threads)
+target_link_libraries(factory_core PUBLIC factory_flags nlohmann_json::nlohmann_json Threads::Threads ZLIB::ZLIB)
 
 add_executable(factory src/main.cpp)
 target_link_libraries(factory PRIVATE factory_core)
@@ -48,6 +50,7 @@ add_executable(factory_tests
     tests/test_ga_ops.cpp
     tests/test_ga_run.cpp
     tests/test_cli.cpp
+    tests/test_blueprint.cpp
 )
 target_link_libraries(factory_tests PRIVATE factory_core Catch2::Catch2WithMain)
 include(Catch)
