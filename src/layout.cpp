@@ -7,6 +7,8 @@
 namespace factory {
 namespace {
 
+constexpr long long kMaxGridSize = 100;  // the spec fixes 10x10; this only guards against absurd input
+
 bool in_grid(Vec p, int size) { return p.x >= 0 && p.y >= 0 && p.x < size && p.y < size; }
 
 std::vector<int> chest_grid(int size, Vec in, Vec out) {
@@ -21,7 +23,7 @@ std::vector<int> chest_grid(int size, Vec in, Vec out) {
 bool try_place(std::vector<int>& occ, int size, const Entity& e, int id, int* hit) {
     const int s = entity_size(e.type);
     *hit = kEmpty;
-    if (e.x < 0 || e.y < 0 || e.x + s > size || e.y + s > size) return false;
+    if (e.x < 0 || e.y < 0 || e.x > size - s || e.y > size - s) return false;
     for (int dy = 0; dy < s; ++dy)
         for (int dx = 0; dx < s; ++dx)
             if (int c = occ[(e.y + dy) * size + e.x + dx]; c != kEmpty) {
@@ -45,9 +47,11 @@ std::string describe_occupant(int c) {
 }
 
 // Converts a Factorio centre position to the entity's top-left tile.
-Vec tile_of(double cx, double cy, int s, const std::string& where) {
+Vec tile_of(double cx, double cy, int s, int size, const std::string& where) {
     const double x = cx - s / 2.0;
     const double y = cy - s / 2.0;
+    if (!(x >= 0 && y >= 0 && x <= size - s && y <= size - s))  // also rejects NaN
+        throw std::runtime_error(where + ": position is outside the grid");
     const long rx = std::lround(x);
     const long ry = std::lround(y);
     if (std::abs(x - rx) > 1e-6 || std::abs(y - ry) > 1e-6)
@@ -124,36 +128,43 @@ Layout layout_from_json(const nlohmann::json& j, int max_entities) {
     try {
         if (j.at("format").get<std::string>() != "factory-layout-v1")
             throw std::runtime_error("unsupported layout format");
-        const int size = j.at("grid_size").get<int>();
+        const auto& jsize = j.at("grid_size");
+        if (!jsize.is_number_integer() || jsize.get<long long>() < 1 || jsize.get<long long>() > kMaxGridSize)
+            throw std::runtime_error("grid_size must be an integer between 1 and " + std::to_string(kMaxGridSize));
+        const int size = jsize.get<int>();
         std::optional<Vec> in, out;
         std::vector<Entity> es;
         const auto& list = j.at("entities");
         for (std::size_t i = 0; i < list.size(); ++i) {
             const auto& je = list[i];
             const std::string where = "entity #" + std::to_string(i + 1);
-            const std::string name = je.at("name").get<std::string>();
-            const double px = je.at("position").at("x").get<double>();
-            const double py = je.at("position").at("y").get<double>();
-            if (name == "wooden-chest") {
-                const Vec p = tile_of(px, py, 1, where);
-                const std::string role = je.at("role").get<std::string>();
-                std::optional<Vec>& slot = role == "input" ? in : out;
-                if (role != "input" && role != "output")
-                    throw std::runtime_error(where + ": chest role must be 'input' or 'output'");
-                if (slot) throw std::runtime_error(where + ": duplicate " + role + " chest");
-                slot = p;
-                continue;
+            try {
+                const std::string name = je.at("name").get<std::string>();
+                const double px = je.at("position").at("x").get<double>();
+                const double py = je.at("position").at("y").get<double>();
+                if (name == "wooden-chest") {
+                    const Vec p = tile_of(px, py, 1, size, where);
+                    const std::string role = je.at("role").get<std::string>();
+                    std::optional<Vec>& slot = role == "input" ? in : out;
+                    if (role != "input" && role != "output")
+                        throw std::runtime_error(where + ": chest role must be 'input' or 'output'");
+                    if (slot) throw std::runtime_error(where + ": duplicate " + role + " chest");
+                    slot = p;
+                    continue;
+                }
+                const auto type = type_from_factorio_name(name);
+                if (!type) throw std::runtime_error(where + ": unknown entity name '" + name + "'");
+                const Vec p = tile_of(px, py, entity_size(*type), size, where);
+                Direction dir = Direction::North;
+                if (*type != EntityType::Assembler) {
+                    const auto d = direction_from_name(je.at("direction").get<std::string>());
+                    if (!d) throw std::runtime_error(where + ": unknown direction");
+                    dir = *d;
+                }
+                es.push_back({*type, p.x, p.y, dir});
+            } catch (const nlohmann::json::exception& e) {
+                throw std::runtime_error(where + ": " + e.what());
             }
-            const auto type = type_from_factorio_name(name);
-            if (!type) throw std::runtime_error(where + ": unknown entity name '" + name + "'");
-            const Vec p = tile_of(px, py, entity_size(*type), where);
-            Direction dir = Direction::North;
-            if (*type != EntityType::Assembler) {
-                const auto d = direction_from_name(je.at("direction").get<std::string>());
-                if (!d) throw std::runtime_error(where + ": unknown direction");
-                dir = *d;
-            }
-            es.push_back({*type, p.x, p.y, dir});
         }
         if (!in) throw std::runtime_error("layout has no input chest");
         if (!out) throw std::runtime_error("layout has no output chest");

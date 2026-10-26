@@ -122,3 +122,43 @@ TEST_CASE("json errors are readable", "[layout]") {
 
     REQUIRE_THROWS_WITH(layout_from_json(nlohmann::json::object(), 60), ContainsSubstring("malformed layout JSON"));
 }
+
+TEST_CASE("json errors for missing or mistyped keys name the entity", "[layout]") {
+    nlohmann::json good = layout_to_json(make({{Belt, 5, 5, East}}));
+
+    nlohmann::json no_dir = good;
+    no_dir["entities"][2].erase("direction");
+    REQUIRE_THROWS_WITH(layout_from_json(no_dir, 60), ContainsSubstring("entity #3") && ContainsSubstring("direction"));
+
+    nlohmann::json no_role = good;
+    no_role["entities"][0].erase("role");
+    REQUIRE_THROWS_WITH(layout_from_json(no_role, 60), ContainsSubstring("entity #1") && ContainsSubstring("role"));
+
+    nlohmann::json string_x = good;
+    string_x["entities"][2]["position"]["x"] = "5.5";
+    REQUIRE_THROWS_WITH(layout_from_json(string_x, 60), ContainsSubstring("entity #3"));
+}
+
+TEST_CASE("json rejects out-of-range coordinates and grid sizes", "[layout]") {
+    nlohmann::json good = layout_to_json(make({{Belt, 5, 5, East}}));
+
+    nlohmann::json overflow = good;
+    overflow["entities"][2]["position"]["x"] = 2147483647.5;
+    REQUIRE_THROWS_WITH(layout_from_json(overflow, 60), ContainsSubstring("entity #3") && ContainsSubstring("outside the grid"));
+
+    nlohmann::json wraps = good;
+    wraps["entities"][2]["position"]["x"] = 4294967297.5;  // would wrap to x = 1 if narrowed blindly
+    REQUIRE_THROWS_WITH(layout_from_json(wraps, 60), ContainsSubstring("outside the grid"));
+
+    nlohmann::json negative = good;
+    negative["entities"][2]["position"]["x"] = -0.5;
+    REQUIRE_THROWS_WITH(layout_from_json(negative, 60), ContainsSubstring("outside the grid"));
+
+    nlohmann::json huge_grid = good;
+    huge_grid["grid_size"] = 60000;
+    REQUIRE_THROWS_WITH(layout_from_json(huge_grid, 60), ContainsSubstring("grid_size"));
+
+    nlohmann::json float_grid = good;
+    float_grid["grid_size"] = 1e10;
+    REQUIRE_THROWS_WITH(layout_from_json(float_grid, 60), ContainsSubstring("grid_size"));
+}
