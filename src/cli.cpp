@@ -16,6 +16,11 @@ CliCommand parse_run(const std::vector<std::string>& args) {
     RunOptions o;
     for (std::size_t i = 1; i < args.size(); i += 2) {
         const std::string& flag = args[i];
+        if (flag == "--seeds") {
+            o.use_seeds = true;
+            --i;  // takes no value
+            continue;
+        }
         if (i + 1 >= args.size()) return CliError{"missing value for " + flag};
         const std::string& value = args[i + 1];
         const std::string bad = "value '" + value + "' for " + flag + " is not a valid number";
@@ -54,7 +59,7 @@ CliCommand parse_cli(const std::vector<std::string>& args) {
 
 std::string usage() {
     return "usage:\n"
-           "  factory run [--pop 200] [--gens 500] [--seed 42] [--threads N] [--out best]\n"
+           "  factory run [--pop 200] [--gens 500] [--seed 42] [--threads N] [--out best] [--seeds]\n"
            "  factory sim <layout.json>\n";
 }
 

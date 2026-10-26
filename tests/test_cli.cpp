@@ -23,6 +23,15 @@ TEST_CASE("parse run with defaults", "[cli]") {
     CHECK(r->ga.seed == 42);
     CHECK(r->ga.threads == 0);
     CHECK(r->out == "best");
+    CHECK_FALSE(r->use_seeds);
+}
+
+TEST_CASE("parse run with --seeds", "[cli]") {
+    CliCommand cmd = parse_cli({"run", "--seeds", "--gens", "3"});
+    const auto* r = std::get_if<RunOptions>(&cmd);
+    REQUIRE(r != nullptr);
+    CHECK(r->use_seeds);
+    CHECK(r->ga.generations == 3);
 }
 
 TEST_CASE("parse run with flags", "[cli]") {

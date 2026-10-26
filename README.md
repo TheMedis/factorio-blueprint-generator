@@ -14,11 +14,12 @@ Tests (Debug, with sanitizers):
 
 ## Use
 
-    ./build-release/factory run [--pop 200] [--gens 500] [--seed 42] [--threads N] [--out best]
+    ./build-release/factory run [--pop 200] [--gens 500] [--seed 42] [--threads N] [--out best] [--seeds]
     ./build-release/factory sim best.json
 
 `run` prints progress and the best layout, then writes `<out>.json` (Factorio-style entity
-list) and `<out>.svg`. `sim` re-simulates a saved or hand-written layout.
+list) and `<out>.svg`. By default the GA starts from random layouts only; `--seeds`
+also starts ~10% of the population from a hand-made working layout. `sim` re-simulates a saved or hand-written layout.
 
 ASCII legend: `I` input chest, `O` output chest, `A` assembler, `^ > v <` belts,
 `n e s w` inserters (letter = drop direction).

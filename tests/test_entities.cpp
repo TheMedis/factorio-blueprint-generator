@@ -40,4 +40,5 @@ TEST_CASE("tier-1 config reproduces Factorio rates", "[entities]") {
     CHECK(c.input_chest == Vec{0, 4});
     CHECK(c.output_chest == Vec{9, 4});
     CHECK(c.grid_size == 10);
+    CHECK(c.seed_fraction == 0.0);  // GA starts from random layouts only unless --seeds
 }

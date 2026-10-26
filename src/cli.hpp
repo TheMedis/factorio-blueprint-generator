@@ -11,6 +11,7 @@ namespace factory {
 struct RunOptions {
     GaParams ga;
     std::string out = "best";  // writes <out>.json and <out>.svg
+    bool use_seeds = false;    // start ~10% of the population from the hand-made seed layout
 };
 
 struct SimOptions {

@@ -68,7 +68,7 @@ struct Config {
     double crossover_rate = 0.7;
     int stagnation_generations = 50;
     double stagnation_replace_fraction = 0.2;
-    double seed_fraction = 0.1;
+    double seed_fraction = 0.0;  // share of fresh genomes copied from hand-made seeds (0 = random only)
     int init_min_entities = 5;
     int init_max_entities = 25;
     // Order: Add, Remove, Move, Rotate, Retype, AttachInserter, BeltRun

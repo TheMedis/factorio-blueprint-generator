@@ -68,7 +68,10 @@ int main(int argc, char** argv) {
         std::cerr << "error: " << err->message << "\n\n" << usage();
         return 1;
     }
-    const Config cfg;
-    if (const auto* run = std::get_if<RunOptions>(&cmd)) return run_command(*run, cfg);
+    Config cfg;
+    if (const auto* run = std::get_if<RunOptions>(&cmd)) {
+        if (run->use_seeds) cfg.seed_fraction = 0.1;
+        return run_command(*run, cfg);
+    }
     return sim_command(std::get<SimOptions>(cmd), cfg);
 }

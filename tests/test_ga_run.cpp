@@ -50,6 +50,7 @@ TEST_CASE("run_ga is monotone and reproducible across thread counts", "[ga_run]"
 
 TEST_CASE("zero generations returns the best initial genome", "[ga_run]") {
     Config c = fast_cfg();
+    c.seed_fraction = 0.1;
     GaResult r = run_ga(c, GaParams{.population = 5, .generations = 0, .seed = 1, .threads = 1});
     CHECK(r.best_history.size() == 1);
     CHECK(r.best_result.gears_delivered > 0.3);  // the seed layout is in the initial population
