@@ -97,10 +97,7 @@ nlohmann::json blueprint_json(const Layout& l) {
         return entities.back();
     };
 
-    json& in = add("infinity-chest", l.input_chest().x + 0.5, l.input_chest().y + 0.5);
-    in["infinity_settings"] = {{"remove_unfiltered_items", false},
-                               {"filters", json::array({{{"index", 1}, {"name", "iron-plate"}, {"count", 100},
-                                                         {"mode", "at-least"}}})}};
+    // The input chest tile is left empty: the player places an infinity chest of iron plates there.
     add("wooden-chest", l.output_chest().x + 0.5, l.output_chest().y + 0.5);
 
     for (const Entity& e : l.entities()) {
@@ -111,13 +108,6 @@ nlohmann::json blueprint_json(const Layout& l) {
         case EntityType::Belt: set_direction(b, e.dir); break;
         case EntityType::Inserter: set_direction(b, opposite(e.dir)); break;  // Factorio stores the pickup side
         }
-    }
-
-    // A self-powered substation (18x18 supply area) on each side of the grid; no wires needed.
-    const double mid = l.size() / 2;
-    for (const double cx : {-1.0, l.size() + 1.0}) {
-        add("substation", cx, mid);
-        add("electric-energy-interface", cx, mid + 2);
     }
 
     return {{"blueprint",

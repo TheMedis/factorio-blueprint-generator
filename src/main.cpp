@@ -72,7 +72,6 @@ int sim_command(const SimOptions& o, const Config& cfg) {
 int blueprint_command(const BlueprintOptions& o, const Config& cfg) {
     const std::optional<Layout> l = load_layout(o.layout_path, cfg);
     if (!l) return 1;
-    if (l->size() > 16) std::cerr << "warning: grid larger than 16x16; the two substations will not power all of it\n";
     std::cout << blueprint_string(*l) << "\n";
     return 0;
 }

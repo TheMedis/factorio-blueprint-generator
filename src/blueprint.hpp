@@ -8,9 +8,9 @@
 
 namespace factory {
 
-// Factorio 2.0 blueprint for a layout, ready for editor/sandbox testing: the input chest
-// becomes an infinity chest stocked with iron plates, and substations plus electric energy
-// interfaces outside the grid power everything. Covers grids up to 16x16.
+// Factorio 2.0 blueprint for a layout: assemblers (with the gear recipe), inserters, belts and
+// the output chest. The input chest tile is left empty and no power is included; the player
+// places an infinity chest of iron plates and power themselves.
 nlohmann::json blueprint_json(const Layout& layout);
 // The importable string: '0' + base64(zlib(json)).
 std::string blueprint_string(const Layout& layout);

@@ -25,12 +25,12 @@ also starts ~10% of the population from a hand-made working layout. `sim` re-sim
 ## Try it in Factorio (2.0)
 
 `run` also writes `<out>.blueprint.txt`; `factory blueprint <layout.json>` prints the same
-string for any saved layout. In a sandbox or editor world (`/editor`), open the blueprint
-library → *Import string*, paste, and place it. The blueprint is self-contained for testing:
-the input chest is an infinity chest stocked with iron plates, the output is a wooden chest,
-assemblers come with the gear recipe, and two substations with electric energy interfaces
-just outside the 10×10 power everything. Expect slightly under the simulated rate: the
-simulator treats inserters picking from belts as fast as from chests.
+string for any saved layout. Copy it from the file (e.g. `xclip -selection clipboard <
+best.blueprint.txt`), then in Factorio open the blueprint library → *Import string*, paste,
+and place it. The blueprint contains the assemblers (gear recipe set), inserters, belts and
+the output wooden chest. The input chest tile is left empty: place an infinity chest set to
+iron plates there (editor mode, `/editor`), and add power yourself. Expect slightly under
+the simulated rate: the simulator treats inserters picking from belts as fast as from chests.
 
 ASCII legend: `I` input chest, `O` output chest, `A` assembler, `^ > v <` belts,
 `n e s w` inserters (letter = drop direction).

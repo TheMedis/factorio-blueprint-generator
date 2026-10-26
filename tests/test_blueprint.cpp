@@ -61,46 +61,23 @@ TEST_CASE("blueprint maps entities, directions and recipes", "[blueprint]") {
     CHECK_FALSE(am.contains("direction"));
 }
 
-TEST_CASE("blueprint chests: infinity plates in, wooden chest out", "[blueprint]") {
+TEST_CASE("blueprint leaves the input tile and power to the player", "[blueprint]") {
     const json bp = blueprint_json(sample());
-    const json in = find(bp, "infinity-chest", 0.5, 4.5);
-    const json& filter = in["infinity_settings"]["filters"][0];
-    CHECK(filter["name"] == "iron-plate");
-    CHECK(filter["mode"] == "at-least");
-    CHECK(filter["count"] == 100);
-    CHECK(filter["index"] == 1);
+    // Output chest is included; the input chest tile stays empty for the player's infinity chest.
     find(bp, "wooden-chest", 9.5, 4.5);
-    CHECK(count_named(bp, "infinity-chest") == 1);
     CHECK(count_named(bp, "wooden-chest") == 1);
-}
-
-TEST_CASE("blueprint power covers the grid from outside it", "[blueprint]") {
-    const Layout l = sample();
-    const json bp = blueprint_json(l);
-    CHECK(count_named(bp, "substation") == 2);
-    CHECK(count_named(bp, "electric-energy-interface") == 2);
-    std::vector<std::pair<double, double>> substations;
-    for (const json& e : bp["blueprint"]["entities"]) {
-        if (e["name"] != "substation" && e["name"] != "electric-energy-interface") continue;
-        const double x = e["position"]["x"];
-        CHECK((x < 0 || x > l.size()));  // 2x2 entities wholly outside the grid's columns
-        if (e["name"] == "substation") substations.push_back({x, e["position"]["y"].get<double>()});
-    }
-    // Substation supply area is 18x18 around its centre: every grid tile must touch one.
-    for (int ty = 0; ty < l.size(); ++ty)
-        for (int tx = 0; tx < l.size(); ++tx) {
-            bool covered = false;
-            for (auto [sx, sy] : substations)
-                covered |= tx + 1 > sx - 9 && tx < sx + 9 && ty + 1 > sy - 9 && ty < sy + 9;
-            CHECK(covered);
-        }
+    CHECK(count_named(bp, "infinity-chest") == 0);
+    for (const json& e : bp["blueprint"]["entities"])
+        CHECK_FALSE((e["position"]["x"] == 0.5 && e["position"]["y"] == 4.5));
+    CHECK(count_named(bp, "substation") == 0);
+    CHECK(count_named(bp, "electric-energy-interface") == 0);
 }
 
 TEST_CASE("blueprint entity numbers are 1..n", "[blueprint]") {
     const json bp = blueprint_json(sample());
     const json& es = bp["blueprint"]["entities"];
     for (std::size_t i = 0; i < es.size(); ++i) CHECK(es[i]["entity_number"] == i + 1);
-    CHECK(es.size() == 5 + 2 + 4);  // layout + chests + power
+    CHECK(es.size() == 5 + 1);  // layout + output chest
 }
 
 TEST_CASE("decoding rejects bad strings", "[blueprint]") {
